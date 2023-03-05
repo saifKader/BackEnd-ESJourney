@@ -1,0 +1,67 @@
+import meetingHelper from './meeting-helper.js';
+import { MeetingPayloadEnum } from './meeting-payload.enum.js';
+import io from 'socket.io';
+
+
+function parseMessage(message) {
+    try {
+        const payload = JSON.parse(message);
+        return payload;
+    } catch (err) {
+        return {type: MeetingPayloadEnum.UNKNOWN};
+    }
+}
+
+function listenMessage(meetingId, socket, meetingServer){
+    socket.on('messafe', (message) => handleMeetingMessage(meetingId, socket, message, meetingServer));
+}
+
+function handleMeetingMessage(meetingId, socket, message, meetingServer){
+    var payload = "";
+
+    if (typeof message === 'string') {
+        payload = parseMessage(message);
+    }
+    else {
+        payload = message;
+    }
+    switch (payload.type) {
+        case MeetingPayloadEnum.JOIN_MEETING:
+            meetingHelper.joinMeeting(meetingId, socket, payload, meetingServer);
+            break;
+        case MeetingPayloadEnum.CONNECTION_REQUEST:
+            meetingHelper.forwardConnectionRequest(meetingId, socket, payload, meetingServer);
+            break;
+        case MeetingPayloadEnum.OFFER_SDP:
+            meetingHelper.forwardOfferSDP(meetingId, socket, payload, meetingServer);
+            break;
+        case MeetingPayloadEnum.ICECANDIDATE:
+            meetingHelper.forwardIceCandidate(meetingId, socket, payload, meetingServer);
+            break;
+        case MeetingPayloadEnum.ANSWER_SDP:
+            meetingHelper.forwardAnswerSDP(meetingId, socket, payload, meetingServer);
+            break;
+        case MeetingPayloadEnum.LEAVE_MEETING:
+            meetingHelper.userLeft(meetingId, socket, payload, meetingServer);
+            break;
+        case MeetingPayloadEnum.END_MEETING:
+            meetingHelper.endMeeting(meetingId, socket, payload, meetingServer);
+            break;
+        case MeetingPayloadEnum.VIDEO_TOGGLE:
+        case MeetingPayloadEnum.AUDIO_TOGGLE:
+            meetingHelper.forwardEvent(meetingId, socket, payload, meetingServer);
+            break;
+        case MeetingPayloadEnum.UNKNOWN:
+            break;
+        default:
+            break;
+    }
+}
+
+export function initMeeting(server) {
+    const meetingServer = io(server);
+    meetingServer.on('connection', (socket) => {
+        const meetingId = socket.handshake.query.id;
+        listenMessage(meetingId, socket, meetingServer);
+    });
+}
