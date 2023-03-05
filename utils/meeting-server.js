@@ -8,15 +8,16 @@ function parseMessage(message) {
         const payload = JSON.parse(message);
         return payload;
     } catch (err) {
-        return {type: MeetingPayloadEnum.UNKNOWN};
+        return { type: MeetingPayloadEnum.UNKNOWN };
     }
 }
 
-function listenMessage(meetingId, socket, meetingServer){
-    socket.on('messafe', (message) => handleMeetingMessage(meetingId, socket, message, meetingServer));
+function listenMessage(meetingId, socket, meetingServer) {
+    socket.on('message', (message) => handleMeetingMessage(meetingId, socket, message, meetingServer));
 }
 
-function handleMeetingMessage(meetingId, socket, message, meetingServer){
+function handleMeetingMessage(meetingId, socket, message, meetingServer) {
+    console.log('Received message:', message);
     var payload = "";
 
     if (typeof message === 'string') {
@@ -25,8 +26,10 @@ function handleMeetingMessage(meetingId, socket, message, meetingServer){
     else {
         payload = message;
     }
+    console.log('Payload:', payload);
     switch (payload.type) {
         case MeetingPayloadEnum.JOIN_MEETING:
+            console.log('User joined meeting:', payload.username);
             meetingHelper.joinMeeting(meetingId, socket, payload, meetingServer);
             break;
         case MeetingPayloadEnum.CONNECTION_REQUEST:

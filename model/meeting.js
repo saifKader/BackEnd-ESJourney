@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import user from './user.js';
+
 const meetingSchema = new mongoose.Schema({
     hostId: {
         type: String,
@@ -16,7 +16,7 @@ const meetingSchema = new mongoose.Schema({
     meetingUsers: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "MeetingUser",
+            ref: 'MeetingUser',
         },
     ],
 },{
@@ -31,7 +31,7 @@ const meetingSchema = new mongoose.Schema({
     {timestamps: true}
 );
 
-const Meeting = mongoose.model("meeting", meetingSchema);
+const Meeting = mongoose.model('Meeting', meetingSchema);
 
 export default Meeting;
 
