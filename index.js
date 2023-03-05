@@ -8,7 +8,7 @@ import courseRoute from "./route/courseRoute.js";
 import eventRoute from "./route/eventRoute.js";
 import meetingRoute from "./route/meetingRoute.js";
 import { notFoundError } from './middleware/error-handler.js';
-import { initMeeting } from './utils/meeting-server.js';
+import { initMeeting } from './meeting-server.js';
 import http from 'http';
 
 

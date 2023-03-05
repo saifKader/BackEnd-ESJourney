@@ -2,8 +2,8 @@ import meeting from "../model/meeting.js";
 import meetingUser from "../model/meeting-user.js";
 
 const meetingService = {
-    getAllMeetingUsers: async function (meetingId, callback){
-        meetingUser.find({meetingId: meetingId})
+    getAllMeetingUsers: async function (meetId, callback){
+        meetingUser.find({meetingId: meetId})
             .then((response) => {
                 return callback(null,response);
             })
@@ -24,18 +24,24 @@ const meetingService = {
             });
     },
     joinMeeting: async function (params,callback){
+        console.log('params', params);
         const meetingUserModel = new meetingUser(params);
+    
         meetingUserModel
-            .save()
-            .then(async (response) => {
-                console.log('response2',response);
-                await meeting.findOneAndUpdate({id: params.meetingId}, {$addToSet:{'meetingUsers': meetingUserModel} })
-                return callback(null,response); 
-            })   
-            .catch((err) => {
-                return callback(err);
-            });
+        .save()
+        .then(async (response) => {
+            console.log('response2',response);
+            await meeting.findOneAndUpdate({id: params.meetingId}, {$addToSet:{'meetingUsers':meetingUserModel}});
+            console.log('Meeting updated');
+            return callback(null,response); 
+        })
+            
+        .catch((err) => {
+            console.log('Error', err);
+            return callback(err);
+        })
     },
+    
     isMeetingPresent: async function (meetingId, callback){
         meeting.findById(meetingId)
             .populate('meetingUsers','MeetingUser')

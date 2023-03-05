@@ -3,7 +3,7 @@ import { MeetingPayloadEnum } from '../utils/meeting-payload.enum.js';
 
 
 
- export default async function (meetingId, socket, payload, meetingServer) {
+export default async function joinMeeting (meetingId, socket, payload, meetingServer) {
     const { userId, name } = payload.data;
 
     meetingServices.isMeetingPresent(meetingId, async (err, results) => {
@@ -211,6 +211,6 @@ function sendMessage(socket, payload) {
     socket.send(JSON.stringify(payload));
 }
 function broadcastUsers(meetingId, socket, meetingServer, payload) {
-    socket.broadcast.emit("message", JSON.stringify(payload));
+    socket.broadcast.emit('message', JSON.stringify(payload));
 }
 
