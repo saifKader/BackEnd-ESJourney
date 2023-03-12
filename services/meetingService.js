@@ -5,6 +5,7 @@ const meetingService = {
     getAllMeetingUsers: async function (meetId, callback){
         meetingUser.find({meetingId: meetId})
             .then((response) => {
+                console.log('here2', response);
                 return callback(null,response);
             })
             .catch((err) => {
@@ -16,21 +17,19 @@ const meetingService = {
         meetingSchema
             .save()
             .then((response) => {
-                console.log('response',response);
+                
                 return callback(null,response);
             })
             .catch((err) => {
-                return callback(err);
+                return callback(err);   
             });
     },
     joinMeeting: async function (params,callback){
-        console.log('params', params);
         const meetingUserModel = new meetingUser(params);
     
         meetingUserModel
         .save()
         .then(async (response) => {
-            console.log('response2',response);
             await meeting.findOneAndUpdate({id: params.meetingId}, {$addToSet:{'meetingUsers':meetingUserModel}});
             console.log('Meeting updated');
             return callback(null,response); 
@@ -46,7 +45,6 @@ const meetingService = {
         meeting.findById(meetingId)
             .populate('meetingUsers','MeetingUser')
             .then((response) => {
-                console.log('response3',response);
                 if(!response) callback('Invalid Meeting Id');
                 else callback(null,true);
             })
@@ -59,7 +57,6 @@ const meetingService = {
         meeting.findById(meetingId)
             .populate('meetingUsers','MeetingUser')
             .then((response) => {
-                console.log('response4',response);
                 if(!response) callback('Invalid Meeting Id');
                 else callback(null,response);
             })
@@ -71,7 +68,6 @@ const meetingService = {
         const {meetingId,userId} = params;
         meetingUser.find({meetingId,userId})
             .then((response) => {
-                console.log('response5',response);
                 return callback(null,response[0]);
             })
             .catch((err) => {
@@ -82,7 +78,6 @@ const meetingService = {
         meetingUser
             .updateOne({userId: params.userId},{$set: params}, {new: true})
             .then((response) => {
-                console.log('response6',response);
                 return callback(null,response);
             })
             .catch((err) => {
@@ -95,7 +90,6 @@ const meetingService = {
             .find({meetingId,socketId})
             .limit(1)
             .then((response) => {
-                console.log('response7',response);
                 return callback(null,response);
             })
             .catch((err) => {

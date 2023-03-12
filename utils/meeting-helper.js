@@ -2,8 +2,7 @@ import meetingServices from '../services/meetingService.js';
 import { MeetingPayloadEnum } from '../utils/meeting-payload.enum.js';
 
 
-
-export default async function joinMeeting (meetingId, socket, payload, meetingServer) {
+async function joinMeeting(meetingId, socket, payload, meetingServer) {
     const { userId, name } = payload.data;
 
     meetingServices.isMeetingPresent(meetingId, async (err, results) => {
@@ -37,7 +36,7 @@ export default async function joinMeeting (meetingId, socket, payload, meetingSe
 
 
 }
-export function forwardConnectionRequest(meetingId, socket, payload, meetingServer) {
+ function forwardConnectionRequest(meetingId, socket, payload, meetingServer) {
     const { userId, name, otherUserId } = payload.data;
 
     var model = {
@@ -60,7 +59,7 @@ export function forwardConnectionRequest(meetingId, socket, payload, meetingServ
 
 }
 
-export function forwardIceCandidate(meetingId, socket, payload, meetingServer) {
+ function forwardIceCandidate(meetingId, socket, payload, meetingServer) {
     const { userId, candidate, otherUserId } = payload.data;
 
     var model = {
@@ -82,7 +81,7 @@ export function forwardIceCandidate(meetingId, socket, payload, meetingServer) {
 
 }
 
-export function forwardOfferSDP(meetingId, socket, payload, meetingServer) {
+ function forwardOfferSDP(meetingId, socket, payload, meetingServer) {
     const { userId, sdp, otherUserId } = payload.data;
 
     var model = {
@@ -104,7 +103,7 @@ export function forwardOfferSDP(meetingId, socket, payload, meetingServer) {
 
 }
 
-export function forwardAnswerSDP(meetingId, socket, payload, meetingServer) {
+ function forwardAnswerSDP(meetingId, socket, payload, meetingServer) {
     const { userId, sdp, otherUserId } = payload.data;
 
     var model = {
@@ -126,7 +125,7 @@ export function forwardAnswerSDP(meetingId, socket, payload, meetingServer) {
 
 }
 
-export function userLeft(meetingId, socket, payload, meetingServer) {
+ function userLeft(meetingId, socket, payload, meetingServer) {
     const { userId } = payload.data;
 
     broadcastUsers(meetingId, socket, meetingServer, {
@@ -138,7 +137,7 @@ export function userLeft(meetingId, socket, payload, meetingServer) {
 
 }
 
-export function endMeeting(meetingId, socket, payload, meetingServer) {
+ function endMeeting(meetingId, socket, payload, meetingServer) {
     const { userId } = payload.data;
 
     broadcastUsers(meetingId, socket, meetingServer, {
@@ -148,14 +147,16 @@ export function endMeeting(meetingId, socket, payload, meetingServer) {
         }
     });
     meetingServices.getAllMeetingUsers(meetingId, (err, results) => {
-        for (let i = 0; i < results.length; i++) {
-            const meetingUser = results[i];
-            meetingServer.sockets.connected[meetingUser.socketId].disconnect();
-        }
-    });
+        if (results) {
+            for (let i = 0; i < results.length; i++) {
+              const meetingUser = results[i];
+              meetingServer.sockets.connected[meetingUser.socketId].disconnect();
+            }
+          }
+        });
 }
 
-export function forwardEvent(meetingId, socket, payload, meetingServer) {
+ function forwardEvent(meetingId, socket, payload, meetingServer) {
     const { userId } = payload.data;
 
     broadcastUsers(meetingId, socket, meetingServer, {
@@ -212,5 +213,16 @@ function sendMessage(socket, payload) {
 }
 function broadcastUsers(meetingId, socket, meetingServer, payload) {
     socket.broadcast.emit('message', JSON.stringify(payload));
+}
+
+export{
+    joinMeeting,
+    forwardConnectionRequest,
+    forwardIceCandidate,
+    forwardOfferSDP,
+    forwardAnswerSDP,
+    userLeft,
+    endMeeting,
+    forwardEvent
 }
 
