@@ -13,6 +13,7 @@ export const MeetingPayloadEnum = {
     ICECANDIDATE: 'icecandidate',
     VIDEO_TOGGLE: 'video-toggle',
     AUDIO_TOGGLE: 'audio-toggle',
+    HAND_TOGGLE: 'hand-toggle',
     NOT_FOUND: 'not-found',
     UNKNOWN: 'unknown',
 }

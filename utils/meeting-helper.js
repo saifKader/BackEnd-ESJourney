@@ -14,6 +14,9 @@ async function joinMeeting(meetingId, socket, payload, meetingServer) {
         if (results) {
             addUser(socket, { meetingId, userId, name }).then((result) => {
                 if (result) {
+                    // Set the meetingId in the socket's data object
+                    socket.data.meetingId = meetingId;
+
                     sendMessage(socket, {
                         type: MeetingPayloadEnum.JOINED_MEETING, data: {
                             userId
@@ -33,9 +36,8 @@ async function joinMeeting(meetingId, socket, payload, meetingServer) {
             });
         }
     });
-
-
 }
+
  function forwardConnectionRequest(meetingId, socket, payload, meetingServer) {
     const { userId, name, otherUserId } = payload.data;
 
@@ -125,37 +127,63 @@ async function joinMeeting(meetingId, socket, payload, meetingServer) {
 
 }
 
- function userLeft(meetingId, socket, payload, meetingServer) {
+function userLeft(meetingId, socket, payload, meetingServer) {
     const { userId } = payload.data;
-
-    broadcastUsers(meetingId, socket, meetingServer, {
-        type: MeetingPayloadEnum.USER_LEFT,
-        data: {
-            userId: userId
-        }
+    socket.disconnect()
+    meetingServices.removeMeetingUser({ meetingId, userId }, (err, result) => {
+      if (err) {
+        console.log(err);
+      }
     });
+    console.log('User left:', userId);
+    broadcastUsers(meetingId, socket, meetingServer, {
+      type: MeetingPayloadEnum.USER_LEFT,
+      data: {
+        userId: userId,
+      },
+    });
+  }
 
-}
-
- function endMeeting(meetingId, socket, payload, meetingServer) {
+//end meeting and remove zombie sockets
+async function endMeeting(meetingId, socket, payload, meetingServer) {
+    var i = 0;
     const { userId } = payload.data;
-
-    broadcastUsers(meetingId, socket, meetingServer, {
-        type: MeetingPayloadEnum.MEETING_ENDED,
-        data: {
-            userId: userId
+    const userPromise = new Promise((resolve, reject) => {
+      meetingServices.getMeetingUser({ meetingId, userId }, (err, results) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(results);
         }
+      });
     });
-    meetingServices.getAllMeetingUsers(meetingId, (err, results) => {
-        if (results) {
-            for (let i = 0; i < results.length; i++) {
-              const meetingUser = results[i];
-              meetingServer.sockets.connected[meetingUser.socketId].disconnect();
-            }
-          }
+    userPromise.then(async (results) => {
+      if (results && results.isHost) {
+        // If the user leaving is the host, end the meeting for all users
+        broadcastUsers(meetingId, socket, meetingServer, {
+          type: MeetingPayloadEnum.MEETING_ENDED,
+          data: {
+            userId: payload.data.userId,
+          },
         });
-}
-
+        const socketsInMeeting = meetingServer.sockets.adapter.rooms.get(`meeting-${meetingId}`);
+        if (socketsInMeeting) {
+            for (const socketId of socketsInMeeting) {
+                console.log('Disconnecting socket:', socketId);
+                meetingServer.sockets.sockets.get(socketId).disconnect(true);
+              }
+        }
+        meetingServer.sockets.adapter.rooms.delete(`meeting-${meetingId}`);
+      } else {
+        userLeft(meetingId, socket, payload, meetingServer);
+    
+      }
+    }).catch((err) => {
+      console.error(err);
+    });
+  }
+  
+  
  function forwardEvent(meetingId, socket, payload, meetingServer) {
     const { userId } = payload.data;
 
@@ -183,6 +211,8 @@ function addUser(socket, { meetingId, userId, name }) {
                 };
                 meetingServices.joinMeeting(model, (err, results) => {
                     if (results) {
+                        // Set the socket.data object here
+                        socket.data = { meetingId, userId };
                         resolve(true);
                     }
                     if (err) {
@@ -196,6 +226,8 @@ function addUser(socket, { meetingId, userId, name }) {
                     socketId: socket.id,
                 }, (err, results) => {
                     if (results) {
+                        // Set the socket.data object here
+                        socket.data = { meetingId, userId };
                         resolve(true);
                     }
                     if (err) {
@@ -208,12 +240,27 @@ function addUser(socket, { meetingId, userId, name }) {
     return promise;
 }
 
+
 function sendMessage(socket, payload) {
     socket.send(JSON.stringify(payload));
 }
+/*function broadcastUsers(meetingId, socket, meetingServer, payload) {
+    const socketsInMeeting = meetingServer.sockets.adapter.rooms.get(`meeting-${meetingId}`);
+console.log('socketsInMeeting',socketsInMeeting);
+    if (socketsInMeeting) {
+        console.log('sayeb zebi')
+      socketsInMeeting.forEach((_, socketId) => {
+        if (socketId !== socket.id) {
+            console.log('ena howa');
+          meetingServer.to(socketId).emit('message', JSON.stringify(payload));
+        }
+      });
+    }
+  }*/
 function broadcastUsers(meetingId, socket, meetingServer, payload) {
-    socket.broadcast.emit('message', JSON.stringify(payload));
+    socket.broadcast.to(`meeting-${meetingId}`).emit('message', JSON.stringify(payload));
 }
+
 
 export{
     joinMeeting,

@@ -2,17 +2,65 @@ import meeting from "../model/meeting.js";
 import meetingUser from "../model/meeting-user.js";
 
 const meetingService = {
-    getAllMeetingUsers: async function (meetId, callback){
+    getMeetingUser: async function (params, callback) {
+        const { meetingId, userId } = params;
+        try {
+            const response = await meetingUser.findOne({ meetingId, userId }).populate('meetingId');
+            if (response) {
+                const isHost = response.meetingId.hostId === userId;
+                if (typeof callback === 'function') {
+                    callback(null, { ...response.toJSON(), isHost });
+                }
+            } else {
+                if (typeof callback === 'function') {
+                    callback(null, null);
+                }
+            }
+        } catch (err) {
+            if (typeof callback === 'function') {
+                callback(err);
+            }
+        }
+    },
+    
+    
+    removeMeetingUser: async function (params, callback) {
+        const { meetingId, userId } = params;
+        try {
+          const deletedUser = await meetingUser.findOneAndDelete({ meetingId, userId });
+          return callback(null, deletedUser);
+        } catch (err) {
+          return callback(err);
+        }
+      },
+      removeAllMeetingUsers: async function (params, callback) {
+        const { meetingId } = params;
+        try {
+            const allDeletedUsers = await meetingUser.deleteMany({ meetingId });
+            return callback(null, allDeletedUsers);
+        } catch (err) {
+            return callback(err);
+        }
+    },
+      
+        
+      
+      getAllMeetingUsers: async function (meetId, callback){
         meetingUser.find({meetingId: meetId})
             .then((response) => {
-                console.log('here2', response);
-                return callback(null,response);
+                if (callback) {
+                  return callback(null,response);
+                }
             })
             .catch((err) => {
-                return callback(err);
+                if (callback) {
+                  return callback(err);
+                }
             });
     },
+    
     startMeeting: async function (params, callback) {
+        console.log('part3')
         const meetingSchema = new meeting(params);
         meetingSchema
             .save()
@@ -62,16 +110,6 @@ const meetingService = {
             })
             .catch((err) => {
                 return callback(err,false);
-            });
-    },
-    getMeetingUser: async function (params,callback){
-        const {meetingId,userId} = params;
-        meetingUser.find({meetingId,userId})
-            .then((response) => {
-                return callback(null,response[0]);
-            })
-            .catch((err) => {
-                return callback(err);
             });
     },
     updateMeetingUser: async function (params,callback){

@@ -13,27 +13,21 @@ function parseMessage(message) {
 }
 
 function listenMessage(meetingId, socket, meetingServer) {
-    console.log('part1');
     socket.on('message', (message) => handleMeetingMessage(meetingId, socket, message, meetingServer));
-    console.log('part2');
 }  
 
 function handleMeetingMessage(meetingId, socket, message, meetingServer) {
-    console.log('part3');
     console.log('Received message:', message);
     var payload = "";
 
     if (typeof message === 'string') {
         payload = parseMessage(message);
-        console.log('part4')
     }
     else {
         payload = message;
     }
-    console.log('Payload:', payload);
     switch (payload.type) {
         case MeetingPayloadEnum.JOIN_MEETING:
-            console.log('part 5')
             meetingHelper.joinMeeting(meetingId, socket, payload, meetingServer);
             break;
         case MeetingPayloadEnum.CONNECTION_REQUEST:
@@ -56,6 +50,7 @@ function handleMeetingMessage(meetingId, socket, message, meetingServer) {
             break;
         case MeetingPayloadEnum.VIDEO_TOGGLE:
         case MeetingPayloadEnum.AUDIO_TOGGLE:
+        case MeetingPayloadEnum.HAND_TOGGLE:
             meetingHelper.forwardEvent(meetingId, socket, payload, meetingServer);
             break;
         case MeetingPayloadEnum.UNKNOWN:
@@ -69,9 +64,15 @@ export function initMeeting(server) {
     const meetingServer = new Server(server);
     meetingServer.on('connect', (socket) => {
       const meetingId = socket.handshake.query.id;
-      socket.join(meetingId)
+      socket.join(`meeting-${meetingId}`); // create a unique room for each meeting
       console.log('User connected to meeting:', meetingId);
-      console.log("users in meeting: ", meetingServer.sockets.adapter.rooms.get(meetingId).size);
+      console.log("users in meeting: ", meetingServer.sockets.adapter.rooms.get(`meeting-${meetingId}`).size);
+      socket.on('disconnect', () => {
+        const { meetingId, userId } = socket.data;
+        const payload = { data: { userId } };
+        meetingHelper.userLeft(meetingId, socket, payload, meetingServer);
+      });
       listenMessage(meetingId, socket, meetingServer);
     });
 }
+
